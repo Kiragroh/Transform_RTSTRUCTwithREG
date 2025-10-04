@@ -1,38 +1,38 @@
 """
-Einfaches Tool zum Transformieren eines DICOM RTSTRUCT mittels REG-Datei (4x4-Matrix).
+Simple tool to transform a DICOM RTSTRUCT using a REG DICOM (4x4 matrix).
 
-Funktionalität (minimal, fokussiert):
-- Lies REG (.dcm), extrahiere 4x4-Transformationsmatrix.
-- Wende die Matrix auf alle "ContourData"-Punkte im RTSTRUCT an (homogene Koordinaten).
-- Optional: Übernehme die ReferencedFrameOfReferenceSequence aus einem Planungs-RTSTRUCT.
-- Schreibe ein neues RTSTRUCT mit neuen Series-/SOP-UIDs (Study-UID bleibt unverändert).
+Functionality (minimal, focused):
+- Read REG (.dcm), extract the 4x4 transformation matrix.
+- Apply the matrix to all "ContourData" points in the RTSTRUCT (homogeneous coordinates).
+- Optional: copy the ReferencedFrameOfReferenceSequence from a planning RTSTRUCT.
+- Write a new RTSTRUCT with new Series/SOP UIDs (Study UID remains unchanged).
 
-Nutzung (Kommandozeile):
+Usage (command line):
 
   python simple_transform_structureset.py \
-    --rtstruct Pfad/zum/RTSTRUCT.dcm \
-    --reg Pfad/zur/REG.dcm \
-    --out Pfad/zur/Ausgabe_RTSTRUCT.dcm \
-    [--ref-rtstruct Pfad/zum/Planungs_RTSTRUCT.dcm]
+    --rtstruct <path/to/RTSTRUCT.dcm> \
+    --reg <path/to/REG.dcm> \
+    --out <path/to/output_RTSTRUCT.dcm> \
+    [--ref-rtstruct <path/to/planning_RTSTRUCT.dcm>]
 
   Batch (CSV):
 
-  CSV mit Spalten: rtstruct,reg,out[,ref_rtstruct]
-  Delimiter: "," (Komma) oder ";" (Semikolon) werden automatisch erkannt.
+  CSV columns: rtstruct,reg,out[,ref_rtstruct]
+  Delimiter: "," (comma) or ";" (semicolon) are auto-detected.
 
-    python simple_transform_structureset.py --batch pfad/zur/batch.csv
+    python simple_transform_structureset.py --batch <path/to/batch.csv>
 
-Wenn keine Argumente angegeben werden, öffnet das Tool einfache Dateidialoge.
+If no arguments are provided, the tool opens simple file dialogs.
 
-Hinweise:
-- Falls in der REG-Datei keine gültige 4x4-Matrix gefunden wird, wird die Einheitsmatrix verwendet
-  und eine Warnung ausgegeben (damit bleibt das RTSTRUCT unverändert).
-- Es werden keine weiteren Bearbeitungsschritte durchgeführt (kein Umbenennen, keine Margins,
-  keine Volumenberechnungen etc.).
+Notes:
+- If no valid 4x4 matrix is found in the REG file, the identity matrix is used
+  and a warning is printed (thus the RTSTRUCT remains unchanged).
+- No further processing is performed (no renaming, no margins,
+  no volume calculations, etc.).
 
-Voraussetzungen:
+Requirements:
 - Python 3.9+
-- pydicom, numpy, (optional tkinter für Dateidialog)
+- pydicom, numpy, (optional tkinter for file dialog)
 """
 
 import os
@@ -55,10 +55,10 @@ except Exception:
 
 
 def extract_matrix_from_reg(reg_path: str) -> np.ndarray:
-    """Extrahiert eine 4x4-Transformationsmatrix aus einer DICOM REG-Datei.
+    """Extract a 4x4 transformation matrix from a DICOM REG file.
 
-    Es werden mehrere übliche Stellen geprüft. Falls nichts Geeignetes gefunden wird,
-    wird die 4x4-Einheitsmatrix zurückgegeben und eine Warnung ausgegeben.
+    Multiple common locations are checked. If nothing suitable is found,
+    the 4x4 identity matrix is returned and a warning is emitted.
     """
     ds = pydicom.dcmread(reg_path)
 
@@ -66,7 +66,7 @@ def extract_matrix_from_reg(reg_path: str) -> np.ndarray:
         if mat.shape != (4, 4):
             return False
         flat = mat.flatten()
-        # "echt" transformiert, nicht nur lauter 0/1 (Identität ist aber erlaubt, wenn so geliefert)
+        # Truly transformed, not just all 0/1 (identity is allowed if provided as such)
         return any((v not in (0.0, 1.0)) for v in flat)
 
     def try_get_matrix_from_reg_sequence(reg_seq) -> Optional[np.ndarray]:
@@ -87,7 +87,7 @@ def extract_matrix_from_reg(reg_path: str) -> np.ndarray:
     except Exception:
         pass
 
-    # 2) Alternative Felder (nicht in allen Systemen vorhanden)
+    # 2) Alternative fields (not present in all systems)
     try:
         for reg_seq in ds.RegistrationSequence:
             try:
@@ -97,7 +97,7 @@ def extract_matrix_from_reg(reg_path: str) -> np.ndarray:
             except Exception:
                 pass
             try:
-                # Fallback: nur Translation als Vektor
+                # Fallback: translation-only as a vector
                 vec = [float(v) for v in reg_seq.Vector]
                 tmat = np.eye(4, dtype=float)
                 tmat[:3, 3] = vec[:3]
@@ -120,11 +120,11 @@ def apply_transform_to_rtstruct(rtstruct_path: str,
     - Generiert neue SeriesInstanceUID und SOPInstanceUID (Study bleibt gleich).
     - Optional: kopiert die ReferencedFrameOfReferenceSequence aus ref_rtstruct_path.
     """
-    # Lade Daten
+    # Load data
     rt = pydicom.dcmread(rtstruct_path)
     mat = extract_matrix_from_reg(reg_path)
 
-    # Optional FoR übernehmen
+    # Optionally copy FoR
     if ref_rtstruct_path is not None:
         try:
             ref = pydicom.dcmread(ref_rtstruct_path)
@@ -133,8 +133,8 @@ def apply_transform_to_rtstruct(rtstruct_path: str,
         except Exception as e:
             warnings.warn(f"Konnte Referenz-RTSTRUCT nicht lesen/verwenden: {e}")
 
-    # Optional: Datum aus Ausgabedateinamen extrahieren (z.B. transformed_YYYYMMDD_...)
-    # und StructureSetLabel setzen sowie ROI-Namen mit Datum versehen
+    # Optional: extract date from output filename (e.g., transformed_YYYYMMDD_...)
+    # and set StructureSetLabel and add date to ROI names
     date_yyyymmdd = None
     try:
         base = os.path.basename(out_path)
@@ -152,11 +152,11 @@ def apply_transform_to_rtstruct(rtstruct_path: str,
         except Exception:
             pass
 
-    # Neue UIDs vergeben (Study bleibt, Series/SOP neu)
+    # Assign new UIDs (Study remains, Series/SOP are new)
     rt.SeriesInstanceUID = generate_uid()
     rt.SOPInstanceUID = generate_uid()
 
-    # Punkte transformieren
+    # Transform points
     changed_contours = 0
     if hasattr(rt, 'ROIContourSequence'):
         for roi_contour in rt.ROIContourSequence:
@@ -180,7 +180,7 @@ def apply_transform_to_rtstruct(rtstruct_path: str,
                 contour.ContourData = [c for pt in out_pts for c in pt]
                 changed_contours += 1
 
-    # ROI-Namen aktualisieren: _CBCT -> _YYMMDD (falls Datum erkannt)
+    # Update ROI names: _CBCT -> _YYMMDD (if date recognized)
     if date_yyyymmdd and hasattr(rt, 'StructureSetROISequence'):
         short_date = date_yyyymmdd[2:]
         for roi_seq in rt.StructureSetROISequence:
@@ -199,7 +199,7 @@ def apply_transform_to_rtstruct(rtstruct_path: str,
                 except Exception:
                     pass
 
-    # Speichern
+    # Save
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     rt.save_as(out_path)
 
@@ -213,17 +213,17 @@ def apply_transform_to_rtstruct(rtstruct_path: str,
 
 
 def apply_batch(csv_path: str) -> None:
-    """Führt mehrere Transformationen anhand einer CSV-Datei aus.
+    """Execute multiple transformations from a CSV file.
 
-    Erwartete Spalten:
-      - rtstruct (Pfad)
-      - reg      (Pfad)
-      - out      (Pfad)
-      - ref_rtstruct (optional, Pfad)
+    Expected columns:
+      - rtstruct (path)
+      - reg      (path)
+      - out      (path)
+      - ref_rtstruct (optional, path)
 
-    Delimiter wird automatisch zwischen Komma und Semikolon erkannt.
+    Delimiter is auto-detected between comma and semicolon.
     """
-    # Auto-Delimiter erkennen
+    # Auto-detect delimiter
     with open(csv_path, "r", newline="", encoding="utf-8") as f:
         sample = f.read(2048)
         f.seek(0)

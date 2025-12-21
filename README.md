@@ -91,6 +91,38 @@ python simple_transform_structureset.py --batch C:/data/batch.csv
 - `simple_transform_structureset.py` — main script
 - `requirements.txt` — dependencies
 
+## Companion ESAPI add-on (Dice / structure similarity)
+
+This repository also contains an **ESAPI-based companion add-on** located in:
+
+`/ESAPI/`  (or the corresponding subfolder in this repo)
+
+It was used to **quantify the similarity (e.g. Dice / overlap / distances)** between structures after running
+**RTSTRUCT Transform (REG -> RTSTRUCT)**. In other words:
+
+1. Transform RTSTRUCT contours using the REG 4x4 matrix (this tool).
+2. Load the resulting structures in Eclipse and use the ESAPI scripts to compute Dice / overlap metrics.
+
 ## License
 
-Please add a license (e.g., MIT) if the repo is made public.
+MIT License
+
+Copyright (c) 2025 Maximilian Grohmann
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

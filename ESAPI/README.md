@@ -56,7 +56,57 @@ Results are written relative to the execution directory:
 
 - Varian Eclipse ESAPI environment / assemblies available at build/runtime.
 - Appropriate permissions to open patients and access structure sets.
+- 
+## 3) DICOM Registration Export (Console App)
+
+**File:** `EclipseScripting_DataMining_ExportRegs.cs`
+
+### Purpose
+Console-style script that exports DICOM registration series using DCMTK and the Varian DICOM Daemon:
+
+- Prompts you to select a text file containing patient IDs (one ID per line)
+- Iterates through patients and finds all registration series (SeriesModality.REG)
+- Uses DCMTK `movescu` command to export registration DICOM files
+- Moves exported files from ESAPI import directory to configured destination
+- Creates timestamped log files with export status
+
+### Prerequisites
+- **DCMTK**: Install DCMTK toolkit (e.g., dcmtk-3.6.5-win64-dynamic)
+- **Varian DICOM Daemon**: Configure VMS DB Daemon and VMS File Daemon
+- **Network Access**: Ensure connectivity to DICOM daemon server
+
+### Configuration
+Before running, update the following constants in the script:
+
+```csharp
+// DICOM Network Configuration
+public const string AET = @"DCMTK";                 // Local AE title
+public const string AEC = @"VMSDBD1";               // AE title of VMS DB Daemon  
+public const string AEM = @"VMSFD1";                 // AE title of VMS File Daemon
+public const string IP_PORT = @"<SERVER_IP> <PORT>"; // Server IP and port
+
+// Path Configuration
+public const string ESAPIimportPath = @"<ESAPI_IMPORT_PATH>";     // e.g., "C:\Temp\ESAPIImport\"
+// Additional paths configured inline with TODO comments
+```
+
+### How it works
+1. **Patient Selection**: Load patient IDs from selected text file
+2. **Registration Detection**: Find all series with modality "REG" for each patient
+3. **DICOM Export**: Generate DCMTK commands and execute via PowerShell
+4. **File Management**: Move exported DICOM files to destination directory
+5. **Logging**: Create detailed log files with export status and errors
+
+### Output locations
+- **Exported DICOM files**: `<EXPORT_DESTINATION_PATH>` (configured in script)
+- **Command files**: `<COMMAND_FILE_OUTPUT_PATH>` (temporary DCMTK commands)
+- **Log files**: Same directory as input file, named `Log_YYYYMMDD_HHMMSS.txt`
+
+### References
+For detailed information about DCMTK integration with Varian DICOM Daemon, see:
+[Scripting the Varian DICOM DB Daemon with ESAPI](https://github.com/VarianAPIs/Varian-Code-Samples/wiki/Scripting-the-Varian-DICOM-DB-Daemon-with-ESAPI)
 
 ## Disclaimer
 
 This code is provided as-is. Validate results independently before using in any clinical workflow.
+
